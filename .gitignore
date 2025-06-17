@@ -1,0 +1,19 @@
+# NetBeans specific
+/nbproject/private/
+/nbbuild/
+/build/
+/nbdist/
+.nb-gradle/
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile specifc
+/bin/
+/gen/

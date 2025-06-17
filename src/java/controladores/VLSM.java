@@ -9,6 +9,7 @@ import java.util.Map;
 public class VLSM {
 
     private static class NodoSubred {
+
         String direccionIp;
         int prefijo;
         Map.Entry<String, Integer> requerimientoAsignado = null;
@@ -23,99 +24,149 @@ public class VLSM {
         public void dividir() {
             if (this.hijoIzquierdo == null && this.prefijo < 32) {
                 int ipPadreInt = ipAEntero(this.direccionIp);
-                int incremento = 1 << (32 - (this.prefijo + 1));
+                int bitsDeHost = 32 - (this.prefijo + 1);
+                int incremento = (int) Math.pow(2, bitsDeHost);
                 this.hijoIzquierdo = new NodoSubred(this.direccionIp, this.prefijo + 1);
                 this.hijoDerecho = new NodoSubred(enteroAIp(ipPadreInt + incremento), this.prefijo + 1);
             }
         }
     }
-    
+
     private StringBuilder detalleProceso;
     private List<NodoSubred> nodosAsignadosParaTabla;
-    
-    private String formatearConEspacios(String parteBinaria, String parteDecimal) { 
-        int longitudDeseada = 45; 
-        int espacios = longitudDeseada - parteBinaria.length(); 
-        if (espacios < 1) espacios = 1; 
-        return parteBinaria + " ".repeat(espacios) + parteDecimal; 
+
+    private String formatearConEspacios(String parteBinaria, String parteDecimal) {
+        int longitudDeseada = 45;
+        int espacios = longitudDeseada - parteBinaria.length();
+        if (espacios < 1) {
+            espacios = 1;
+        }
+        return parteBinaria + " ".repeat(espacios) + parteDecimal;
     }
-    
-    private int calcularBitsNecesarios(int hosts) { 
-        if (hosts <= 0) return 0; 
-        int n = 0; 
-        while (Math.pow(2, n) < hosts + 2) { 
-            n++; 
-        } 
-        return n; 
+
+    private int calcularBitsNecesarios(int hosts) {
+        if (hosts <= 0) {
+            return 0;
+        }
+        int n = 0;
+        while (Math.pow(2, n) < hosts + 2) {
+            n++;
+        }
+        return n;
     }
-    
-    private static String ipABinario(String ip) { 
-        String[] octetos = ip.split("\\."); 
-        StringBuilder binario = new StringBuilder(); 
-        for (String octeto : octetos) { 
-            binario.append(String.format("%8s", Integer.toBinaryString(Integer.parseInt(octeto))).replace(' ', '0')); 
-        } 
-        return binario.toString(); 
+
+    private static String ipABinario(String ip) {
+        String[] octetos = ip.split("\\.");
+        StringBuilder binario = new StringBuilder();
+        for (String octeto : octetos) {
+            binario.append(String.format("%8s", Integer.toBinaryString(Integer.parseInt(octeto))).replace(' ', '0'));
+        }
+        return binario.toString();
     }
-    
-    private static String binarioAIp(String binario) { 
-        StringBuilder ip = new StringBuilder(); 
-        for (int i = 0; i < 32; i += 8) { 
-            ip.append(Integer.parseInt(binario.substring(i, i + 8), 2)); 
-            if (i < 24) ip.append("."); 
-        } 
-        return ip.toString(); 
+
+    private static String binarioAIp(String binario) {
+        StringBuilder ip = new StringBuilder();
+        for (int i = 0; i < 32; i += 8) {
+            ip.append(Integer.parseInt(binario.substring(i, i + 8), 2));
+            if (i < 24) {
+                ip.append(".");
+            }
+        }
+        return ip.toString();
     }
-    
-    private static int ipAEntero(String ip) { 
-        String[] octetos = ip.split("\\."); 
-        return (Integer.parseInt(octetos[0]) << 24) | 
-               (Integer.parseInt(octetos[1]) << 16) | 
-               (Integer.parseInt(octetos[2]) << 8)  | 
-               Integer.parseInt(octetos[3]);
+
+    private static int ipAEntero(String ip) {
+        String[] octetos = ip.split("\\.");
+
+        long octeto1 = Long.parseLong(octetos[0]);
+        long octeto2 = Long.parseLong(octetos[1]);
+        long octeto3 = Long.parseLong(octetos[2]);
+        long octeto4 = Long.parseLong(octetos[3]);
+
+        long resultado = (octeto1 * 256 * 256 * 256)
+                + (octeto2 * 256 * 256)
+                + (octeto3 * 256)
+                + octeto4;
+
+        return (int) resultado;
     }
-    
-    private static String enteroAIp(int ip) { 
-        return ((ip >>> 24) & 0xFF) + "." + 
-               ((ip >>> 16) & 0xFF) + "." + 
-               ((ip >>> 8) & 0xFF) + "." + 
-               (ip & 0xFF); 
+
+    private static String enteroAIp(int ip) {
+        long ipComoLong = ip & 0xFFFFFFFFL;
+
+        long octeto1 = ipComoLong / 16777216; // (256^3)
+        long resto1 = ipComoLong % 16777216;
+
+        long octeto2 = resto1 / 65536; // (256^2)
+        long resto2 = resto1 % 65536;
+
+        long octeto3 = resto2 / 256;
+        long octeto4 = resto2 % 256;
+
+        return octeto1 + "." + octeto2 + "." + octeto3 + "." + octeto4;
     }
-    
-    private String calcularPrimeraUtilizable(String red, int prefijo) { 
-        if (prefijo >= 31) return "N/A"; 
-        return enteroAIp(ipAEntero(red) + 1); 
+
+    private String calcularPrimeraUtilizable(String red, int prefijo) {
+        if (prefijo >= 31) {
+            return "N/A";
+        }
+        return enteroAIp(ipAEntero(red) + 1);
     }
-    
-    private String calcularUltimaUtilizable(String red, int prefijo) { 
-        if (prefijo >= 31) return "N/A"; 
-        return enteroAIp(ipAEntero(calcularBroadcast(red, prefijo)) - 1); 
+
+    private String calcularUltimaUtilizable(String red, int prefijo) {
+        if (prefijo >= 31) {
+            return "N/A";
+        }
+        return enteroAIp(ipAEntero(calcularBroadcast(red, prefijo)) - 1);
     }
-    
-    private String calcularMascaraDePrefijo(int prefijo) { 
-        long mask = (0xFFFFFFFFL << (32 - prefijo)) & 0xFFFFFFFFL; 
-        return enteroAIp((int)mask); 
+
+    private String calcularMascaraDePrefijo(int prefijo) {
+        if (prefijo < 0 || prefijo > 32) {
+            throw new IllegalArgumentException("El prefijo debe estar entre 0 y 32");
+        }
+
+        StringBuilder mascaraBinaria = new StringBuilder();
+
+        for (int i = 0; i < 32; i++) {
+            if (i < prefijo) {
+                mascaraBinaria.append("1");
+            }
+            else {
+                mascaraBinaria.append("0");
+            }
+        }
+        long mascaraComoLong = Long.parseLong(mascaraBinaria.toString(), 2);
+
+        return enteroAIp((int) mascaraComoLong);
     }
-    
-    private String calcularBroadcast(String red, int prefijo) { 
-        if (prefijo >= 31) return "N/A"; 
-        int redInt = ipAEntero(red); 
-        int mascaraInvertida = (1 << (32 - prefijo)) - 1; 
-        return enteroAIp(redInt | mascaraInvertida); 
+
+    private String calcularBroadcast(String red, int prefijo) {
+        if (prefijo >= 31) {
+            return "N/A";
+        }
+        int redInt = ipAEntero(red);
+        int mascaraInvertida = (1 << (32 - prefijo)) - 1;
+        return enteroAIp(redInt | mascaraInvertida);
     }
-    
-    private static String formatearIPBinaria(String binario, int prefijo, int nuevaMascara) { 
-        StringBuilder resultado = new StringBuilder(); 
-        for (int i = 0; i < binario.length(); i++) { 
-            if (i > 0 && i % 8 == 0) resultado.append("."); 
-            if (i == prefijo || i == nuevaMascara) resultado.append("|"); 
-            resultado.append(binario.charAt(i)); 
-        } 
-        return resultado.toString(); 
+
+    private static String formatearIPBinaria(String binario, int prefijo, int nuevaMascara) {
+        StringBuilder resultado = new StringBuilder();
+        for (int i = 0; i < binario.length(); i++) {
+            if (i > 0 && i % 8 == 0) {
+                resultado.append(".");
+            }
+            if (i == prefijo || i == nuevaMascara) {
+                resultado.append("|");
+            }
+            resultado.append(binario.charAt(i));
+        }
+        return resultado.toString();
     }
 
     private void buscarNodosAsignados(NodoSubred nodo, List<NodoSubred> lista) {
-        if (nodo == null) return;
+        if (nodo == null) {
+            return;
+        }
         if (nodo.requerimientoAsignado != null) {
             lista.add(nodo);
         }
@@ -125,7 +176,7 @@ public class VLSM {
 
     private String generarTablaResumenHTML() {
         nodosAsignadosParaTabla.sort((n1, n2) -> n2.requerimientoAsignado.getValue().compareTo(n1.requerimientoAsignado.getValue()));
-        
+
         StringBuilder sb = new StringBuilder();
         sb.append("<table><thead><tr><th>Nombre LAN</th><th>Hosts Req.</th><th>Asignados</th><th>Dirección Red</th><th>Máscara</th><th>Rango IP</th><th>Broadcast</th></tr></thead><tbody>");
         for (NodoSubred nodo : nodosAsignadosParaTabla) {
@@ -144,9 +195,11 @@ public class VLSM {
         sb.append("</tbody></table>");
         return sb.toString();
     }
-    
+
     private void generarDetalleProceso(NodoSubred nodo, int nivel) {
-        if (nodo == null) return;
+        if (nodo == null) {
+            return;
+        }
         String sangria = "    ".repeat(nivel);
         String ipBinaria = formatearIPBinaria(ipABinario(nodo.direccionIp), -1, nodo.prefijo);
         String linea = formatearConEspacios(ipBinaria, nodo.direccionIp + "/" + nodo.prefijo);
@@ -159,15 +212,19 @@ public class VLSM {
             generarDetalleProceso(nodo.hijoDerecho, nivel + 1);
         }
     }
-    
+
     private boolean asignarRed(NodoSubred nodo, Map.Entry<String, Integer> requerimiento) {
-        if (nodo == null || nodo.requerimientoAsignado != null) return false;
-        
+        if (nodo == null || nodo.requerimientoAsignado != null) {
+            return false;
+        }
+
         int tamanoRequerido = requerimiento.getValue();
         int prefijoNecesario = 32 - calcularBitsNecesarios(tamanoRequerido);
 
-        if (nodo.prefijo > prefijoNecesario) return false;
-        
+        if (nodo.prefijo > prefijoNecesario) {
+            return false;
+        }
+
         boolean asignado = false;
         if (nodo.prefijo < prefijoNecesario) {
             nodo.dividir();
@@ -186,7 +243,7 @@ public class VLSM {
     public ResultadoVLSM calcularVLSM(String ip, int prefijo, int[] tamanosRedes) {
         this.detalleProceso = new StringBuilder();
         this.nodosAsignadosParaTabla = new ArrayList<>();
-        
+
         Map<String, Integer> requerimientos = new LinkedHashMap<>();
         for (int i = 0; i < tamanosRedes.length; i++) {
             requerimientos.put("LAN " + String.format("%02d", i + 1), tamanosRedes[i]);

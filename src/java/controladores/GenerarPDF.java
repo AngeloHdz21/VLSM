@@ -13,10 +13,10 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -30,16 +30,24 @@ public class GenerarPDF extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String ip = request.getParameter("ip");
-        int prefijo = Integer.parseInt(request.getParameter("prefix"));
-        String lanSizesRaw = request.getParameter("lanSizes");
+        String ip = request.getParameter("direccionIp");
+        int prefijo = Integer.parseInt(request.getParameter("prefijo"));
+        String textoTamanosLans = request.getParameter("tamanosLans");
+                
+        String[] tamanosRedesStr = textoTamanosLans.split("\\s+");
         
-        String[] tamanosRedesStr = lanSizesRaw.split("\\s+");
-        int[] tamanosRedes = Arrays.stream(tamanosRedesStr)
-                                   .filter(s -> s != null && !s.isEmpty())
-                                   .mapToInt(Integer::parseInt)
-                                   .toArray();
+        List<Integer> listaDeTamanos = new ArrayList<>();
+        for (String texto : tamanosRedesStr) {
+            if (texto != null && !texto.isEmpty()) {
+                listaDeTamanos.add(Integer.parseInt(texto));
+            }
+        }
         
+        int[] tamanosRedes = new int[listaDeTamanos.size()];
+        for (int i = 0; i < listaDeTamanos.size(); i++) {
+            tamanosRedes[i] = listaDeTamanos.get(i);
+        }
+
         VLSM servicio = new VLSM();
         ResultadoVLSM resultadoOriginal = servicio.calcularVLSM(ip, prefijo, tamanosRedes);
 
